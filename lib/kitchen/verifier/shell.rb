@@ -60,7 +60,7 @@ module Kitchen
 
       def prepare_upload
         return unless config[:upload_path]
-        FileUtils.cp_r(config[:upload_path], sandbox_path, :preserve => true)
+        FileUtils.cp_r(config[:upload_path], sandbox_path)
       end
 
       def prepare_command
