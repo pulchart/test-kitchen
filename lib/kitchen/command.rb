@@ -160,6 +160,7 @@ module Kitchen
       # @param instances [Array<Instance>] an array of instances
       def run_action(action, instances, *args)
         concurrency = 1
+        exit_status = 0
         if options[:concurrency]
           concurrency = options[:concurrency] || instances.size
           concurrency = instances.size if concurrency > instances.size
@@ -173,11 +174,23 @@ module Kitchen
         concurrency.times do
           threads << Thread.new do
             while instance = queue.pop
-              instance.public_send(action, *args)
+              # Fail fast for a standard run
+              # Only log failures for a parallel one
+              begin
+                instance.public_send(action, *args)
+              rescue Kitchen::StandardError => e
+                if concurrency > 1
+                  message = Color.colorize(e.message, :red)
+                  error message
+                  exit_status = 1
+                else
+                  raise e
+                end
+              end
             end
           end
         end
-        threads.map(&:join)
+        threads.map(&:join) && exit(exit_status)
       end
     end
   end
